@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<navigation xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/navigation"
+    app:startDestination="@id/fileListContainerFragment">
+    <fragment
+        android:id="@+id/fileListContainerFragment"
+        android:name="com.yywspace.simplefilemanager.FileListContainerFragment"
+        android:label="@string/file_list_page_label"
+        tools:layout="@layout/fragment_file_list_container" >
+        <action
+            android:id="@+id/action_fileListContainerFragment_to_fileSearchFragment"
+            app:destination="@id/fileSearchFragment" />
+    </fragment>
+    <fragment
+        android:id="@+id/fileSearchFragment"
+        android:name="com.yywspace.simplefilemanager.FileSearchFragment"
+        android:label="@string/file_search_page_label"
+        tools:layout="@layout/fragment_file_search" />
+</navigation>

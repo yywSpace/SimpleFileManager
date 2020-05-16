@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:background="@drawable/file_list_item_background">
+
+    <RelativeLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_centerVertical="true"
+        android:layout_marginStart="10dp"
+        android:layout_marginEnd="10dp"
+        android:layout_toEndOf="@+id/search_icon">
+
+        <TextView
+            android:id="@+id/searchTime"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_below="@+id/searchContent"
+            android:layout_marginStart="12dp"
+            android:layout_marginTop="8dp"
+            tools:text="2019.08.02" />
+
+        <TextView
+            android:id="@+id/searchContent"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="10dp"
+            android:ellipsize="end"
+            android:maxEms="7"
+            android:singleLine="true"
+            android:textColor="@android:color/black"
+            tools:text="FileName"
+            tools:ignore="RelativeOverlap" />
+
+        <ImageButton
+            android:id="@+id/deleteHistory"
+            android:layout_width="25dp"
+            android:layout_height="25dp"
+            android:layout_alignParentEnd="true"
+            android:layout_centerVertical="true"
+            android:layout_marginEnd="16dp"
+            android:contentDescription="@string/search_history_delete_icon_desc"
+            android:src="@drawable/ic_close_gray"
+            android:background="?android:attr/selectableItemBackgroundBorderless"  />
+    </RelativeLayout>
+
+    <ImageView
+        android:id="@+id/search_icon"
+        android:layout_width="40dp"
+        android:layout_height="40dp"
+        android:layout_marginStart="16dp"
+        android:layout_marginTop="16dp"
+        android:layout_marginBottom="16dp"
+        android:contentDescription="@string/file_type_image_desc"
+        android:src="@drawable/ic_access_time_gray" />
+
+</RelativeLayout>

@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:background="@drawable/file_list_item_background"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content">
+
+    <RelativeLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_centerVertical="true"
+        android:layout_marginStart="10dp"
+        android:layout_marginEnd="10dp"
+        android:layout_toEndOf="@+id/fileTypeImage">
+
+        <TextView
+            android:id="@+id/fileSize"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_below="@+id/fileName"
+            android:layout_marginStart="10dp"
+            android:layout_marginTop="8dp"
+            tools:text="3M" />
+
+        <TextView
+            android:id="@+id/fileModifyDate"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_below="@+id/fileName"
+            android:layout_marginStart="12dp"
+            android:layout_marginTop="8dp"
+            android:layout_toEndOf="@+id/fileSize"
+            tools:text="2019.08.02" />
+
+        <TextView
+            android:id="@+id/fileName"
+            android:textColor="@android:color/black"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="10dp"
+            tools:text="FileName" />
+    </RelativeLayout>
+
+    <ImageView
+        android:id="@+id/fileTypeImage"
+        android:layout_width="45dp"
+        android:layout_height="45dp"
+        android:layout_marginStart="16dp"
+        android:layout_marginTop="16dp"
+        android:layout_marginBottom="16dp"
+        android:contentDescription="@string/file_type_image_desc"
+        tools:srcCompat="@tools:sample/avatars" />
+
+</RelativeLayout>

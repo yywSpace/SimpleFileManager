@@ -1,0 +1,33 @@
+<resources>
+    <string name="app_name">SimpleFileManager</string>
+    <string name="file_type_image_desc">文件类型图片</string>
+    <string name="crumb_icon_desc">面包屑导航子项图片</string>
+    <string name="file_list_page_label">文件管理</string>
+    <string name="menu_sort_label">排序</string>
+    <string name="create_folder_label">新建文件夹</string>
+    <string name="menu_search_label">搜索</string>
+    <string name="menu_hidden_file_label">隐藏文件</string>
+    <string name="folder_size_label">%d 项</string>
+    <string name="sort_name_label">名称</string>
+    <string name="sort_time_label">时间</string>
+    <string name="sort_size_label">大小</string>
+    <string name="sort_reverse_order_label">逆序</string>
+    <string name="file_search_page_label">FileSearch</string>
+    <string name="file_list_empty_icon_desc">文件列表空图标</string>
+    <string name="search_history_empty_icon_desc">搜索记录空图标</string>
+    <string name="file_list_empty_label">当前文件列表为空</string>
+    <string name="search_history_empty_label">搜索历史为空</string>
+    <string name="search_history_label">搜索历史</string>
+    <string name="local_search_label">局部搜索</string>
+    <string name="local_search_label_hint">从当前目录%s进行搜索</string>
+    <string name="global_search_label">全局搜索</string>
+    <string name="global_search_label_hint">从根目录进行搜索</string>
+    <string name="search_status_searching_label">搜索中</string>
+    <string name="search_status_finish_label">搜索完毕</string>
+    <string name="unknown_file_label">未知文件</string>
+    <string name="recursive_search_label">递归搜索</string>
+    <string name="clear_search_history_label">清除历史记录</string>
+    <string name="search_history_delete_icon_desc">删除单个历史记录</string>
+    <string name="file_search_list_size_out_of_limit">出于于性能考虑，最大搜索文件数为%d，文件列表超出%d后则无法显示，请考虑改善关键字后重试</string>
+
+</resources>
