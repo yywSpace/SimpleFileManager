@@ -2,23 +2,21 @@ package com.yywspace.simplefilemanager.viewmodels
 
 import android.annotation.SuppressLint
 import android.app.Application
-import android.content.Context
 import android.util.Log
-import android.widget.Toast
-import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
+import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.viewModelScope
 import com.yywspace.simplefilemanager.data.FileItem
 import com.yywspace.simplefilemanager.data.SearchHistory
 import com.yywspace.simplefilemanager.data.SearchHistoryRepository
-import com.yywspace.simplefilemanager.viewmodels.BasicSortViewModel.Companion.SETTING_PREF_NAME
 import kotlinx.coroutines.*
 import java.nio.file.*
 import java.nio.file.attribute.BasicFileAttributes
 import java.util.concurrent.ConcurrentLinkedQueue
 
-class FileSearchViewModel(application: Application) : BasicSortViewModel(application) {
+class FileSearchViewModel(handle: SavedStateHandle, application: Application) :
+    BasicSortViewModel(handle, application) {
     private val TAG = "FileSearchViewModel"
     private var searchJob: Job? = null
     private val historyRepository = SearchHistoryRepository.getInstance(application)

@@ -3,14 +3,16 @@ package com.yywspace.simplefilemanager.viewmodels
 import android.app.Application
 import android.content.Context
 import android.util.Log
-import androidx.lifecycle.AndroidViewModel
-import androidx.lifecycle.LiveData
-import androidx.lifecycle.MutableLiveData
+import androidx.lifecycle.*
 import com.yywspace.simplefilemanager.data.FileItem
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import java.nio.file.Files
 import java.nio.file.Path
 
-open class BasicSortViewModel(application: Application) : AndroidViewModel(application) {
+open class BasicSortViewModel(val handle: SavedStateHandle, application: Application) :
+    AndroidViewModel(application) {
     private val TAG = "BasicSortViewModel"
     var initialFileItemList: List<FileItem>? = null
     protected val pathListLiveData = MutableLiveData<List<FileItem>>()
@@ -25,19 +27,50 @@ open class BasicSortViewModel(application: Application) : AndroidViewModel(appli
     }
 
     fun selectAll() {
-        pathListLiveData.value?.forEach { it.selected = true }
+        pathListLiveData.value = pathListLiveData.value?.apply { forEach { it.selected = true } }
     }
 
     fun unSelectAll() {
-        pathListLiveData.value?.forEach { it.selected = true }
+        pathListLiveData.value = pathListLiveData.value?.apply { forEach { it.selected = false } }
+    }
+
+    fun isSelected(index: Int): Boolean? {
+        return pathListLiveData.value?.get(index)?.selected
     }
 
     fun reverseSelect() {
-        pathListLiveData.value?.forEach { it.selected = !it.selected }
+        pathListLiveData.value =
+            pathListLiveData.value?.apply { forEach { it.selected = !it.selected } }
     }
 
     fun deleteSelected() {
+        val selectList = getSelectList()
+        pathListLiveData.value = getUnSelectList()
+        viewModelScope.launch {
+            withContext(Dispatchers.IO) {
+                selectList?.filter { it.selected }?.forEach {
+                    if (Files.isDirectory(it.path))
+                        deleteDir(it.path)
+                }
+            }
+        }
 
+    }
+
+    private fun deleteDir(path: Path) {
+        if (Files.isDirectory(path)) {
+            for (f in Files.newDirectoryStream(path).toList())
+                deleteDir(f)
+        }
+        Files.deleteIfExists(path)
+    }
+
+    fun getSelectList(): List<FileItem>? {
+        return pathListLiveData.value?.filter { it.selected }
+    }
+
+    fun getUnSelectList(): List<FileItem>? {
+        return pathListLiveData.value?.filter { !it.selected }
     }
 
     fun select(index: Int) {
@@ -55,6 +88,8 @@ open class BasicSortViewModel(application: Application) : AndroidViewModel(appli
 
 
     open fun initData(path: Path) {
+        if (initialFileItemList != null)
+            return
         initialFileItemList = Files.newDirectoryStream(path).toList().map {
             FileItem(it, false)
         }

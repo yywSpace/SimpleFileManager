@@ -2,17 +2,13 @@ package com.yywspace.simplefilemanager
 
 import android.annotation.SuppressLint
 import android.content.Context
-import android.content.res.Resources
-import android.graphics.Color
-import android.os.Build
 import android.os.Bundle
-import android.os.Handler
-import android.util.Log
 import android.view.*
 import android.widget.EditText
 import android.widget.Toast
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.view.forEachIndexed
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
 import androidx.lifecycle.Observer
@@ -21,17 +17,20 @@ import androidx.recyclerview.widget.DividerItemDecoration
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.yywspace.simplefilemanager.adapters.FileListAdapter
 import com.yywspace.simplefilemanager.viewmodels.FileListViewModel
+import com.yywspace.simplefilemanager.viewmodels.FileListViewModelFactory
 import kotlinx.android.synthetic.main.dialog_file_list_sort_layout.view.*
 import kotlinx.android.synthetic.main.fragment_file_list.*
 import java.io.File
 import java.nio.file.Files
 import java.nio.file.Paths
 
-
 private const val ARG_FOLDER_PATH = "folder_path"
 
 class FileListFragment : Fragment() {
-    private val viewModel: FileListViewModel by viewModels()
+    private val viewModel: FileListViewModel by viewModels {
+        FileListViewModelFactory(requireActivity().application, this)
+    }
+
     private var folderPath: String? = null
     private lateinit var adapter: FileListAdapter
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -78,10 +77,69 @@ class FileListFragment : Fragment() {
 
         // Called when the user selects a contextual menu item
         override fun onActionItemClicked(mode: ActionMode, item: MenuItem): Boolean {
+            when (item.itemId) {
+                R.id.action_select_all -> {
+                    item.isChecked = !item.isChecked
+                    if (item.isChecked) {
+                        item.setIcon(R.drawable.ic_unselect_all)
+                        viewModel.selectAll()
+                    } else {
+                        item.setIcon(R.drawable.ic_select_all)
+                        viewModel.unSelectAll()
+                    }
+                }
+                R.id.action_delete -> {
+                    AlertDialog.Builder(requireContext()).apply {
+                        setTitle(R.string.delete_file_title)
+                        setMessage(
+                            getString(
+                                R.string.delete_file_message,
+                                viewModel.getSelectList()?.size
+                            )
+                        )
+                        setPositiveButton(R.string.confirm_label) { _, _ ->
+                            viewModel.deleteSelected()
+                            actionMode?.finish()
+                        }
+                        setNegativeButton(R.string.cancel_label, null)
+                        show()
+                    }
+                }
+                R.id.action_revert_select ->
+                    viewModel.reverseSelect()
+                R.id.action_paste -> {
+                    Toast.makeText(requireContext(), "$folderPath", Toast.LENGTH_SHORT).show()
+                }
+                R.id.action_cut, R.id.action_copy -> {
+                    actionMode?.title = "请选择路径"
+                    actionMode?.menu?.forEachIndexed { id, menuItem ->
+                        menuItem.isVisible = !menuItem.isVisible
+                    }
+                    adapter.isMultiSelect = false
+                    adapter.notifyDataSetChanged()
+                    adapter.onItemClickListener = { file, i ->
+                        if (viewModel.isSelected(i)!!) {
+                            Toast.makeText(
+                                requireContext(),
+                                "当前目录已选中",
+                                Toast.LENGTH_SHORT
+                            ).show()
+                        } else {
+                            if (Files.isDirectory(file.path))
+                                (parentFragment as FileListContainerFragment)
+                                    .addCrumbItem(
+                                        file.path.fileName.toString(),
+                                        newInstance(file.path.toFile().absolutePath)
+                                    )
+                        }
+                    }
+                }
+            }
             return false
         }
 
         override fun onDestroyActionMode(mode: ActionMode) {
+            viewModel.unSelectAll()
             adapter.isMultiSelect = false
             adapter.notifyDataSetChanged()
             adapter.onItemClickListener = { file, _ ->
@@ -147,6 +205,7 @@ class FileListFragment : Fragment() {
                 }
             else
                 adapter.notifyDataSetChanged()
+            actionMode?.title = viewModel.getSelectList()?.size.toString()
         })
     }
 

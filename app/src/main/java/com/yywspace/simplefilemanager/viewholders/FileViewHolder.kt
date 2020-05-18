@@ -1,5 +1,6 @@
 package com.yywspace.simplefilemanager.viewholders
 
+import android.graphics.Color
 import android.util.Log
 import android.view.View
 import android.widget.ImageView
@@ -15,6 +16,8 @@ import java.util.*
 class FileViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
 
     fun bind(fileItem: FileItem, isMultiSelect: Boolean) {
+        if (!Files.exists(fileItem.path))
+            return
         with(itemView) {
             if (isMultiSelect) {
                 fileSelectCheckBox.visibility = View.VISIBLE
@@ -22,6 +25,10 @@ class FileViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
                 fileSelectCheckBox.visibility = View.INVISIBLE
             }
             fileSelectCheckBox.isChecked = fileItem.selected
+            if (fileSelectCheckBox.isChecked)
+                itemView.setBackgroundColor(Color.parseColor("#50999999"))
+            else
+                itemView.setBackgroundColor(resources.getColor(R.color.colorItemBackground, null))
 
             fileName.text = fileItem.path.fileName.toString()
             fileModifyDate.text = SimpleDateFormat("yyyy.MM.dd", Locale.getDefault()).format(
