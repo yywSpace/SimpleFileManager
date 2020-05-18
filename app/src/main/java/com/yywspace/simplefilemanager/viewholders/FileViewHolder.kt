@@ -1,9 +1,11 @@
 package com.yywspace.simplefilemanager.viewholders
 
+import android.util.Log
 import android.view.View
 import android.widget.ImageView
 import androidx.recyclerview.widget.RecyclerView
 import com.yywspace.simplefilemanager.R
+import com.yywspace.simplefilemanager.data.FileItem
 import kotlinx.android.synthetic.main.item_file_list.view.*
 import java.nio.file.Files
 import java.nio.file.Path
@@ -11,26 +13,29 @@ import java.text.SimpleDateFormat
 import java.util.*
 
 class FileViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
-    var onItemClickListener: ((Path) -> Unit)? = null
 
-    fun bind(path: Path) {
+    fun bind(fileItem: FileItem, isMultiSelect: Boolean) {
         with(itemView) {
-            setOnClickListener {
-                onItemClickListener?.invoke(path)
+            if (isMultiSelect) {
+                fileSelectCheckBox.visibility = View.VISIBLE
+            } else {
+                fileSelectCheckBox.visibility = View.INVISIBLE
             }
-            fileName.text = path.fileName.toString()
+            fileSelectCheckBox.isChecked = fileItem.selected
+
+            fileName.text = fileItem.path.fileName.toString()
             fileModifyDate.text = SimpleDateFormat("yyyy.MM.dd", Locale.getDefault()).format(
                 Date(
-                    Files.getLastModifiedTime(path).toMillis()
+                    Files.getLastModifiedTime(fileItem.path).toMillis()
                 )
             )
-            if (Files.isDirectory(path))
+            if (Files.isDirectory(fileItem.path))
                 fileSize.text = context.getString(
                     R.string.folder_size_label,
-                    Files.newDirectoryStream(path).toMutableList().size
+                    Files.newDirectoryStream(fileItem.path).toMutableList().size
                 )
             else {
-                val size = Files.size(path)
+                val size = Files.size(fileItem.path)
                 when (0.toLong()) {
                     size / 1024 ->
                         fileSize.text = String.format("%.2f Byte", size.toFloat())
@@ -43,7 +48,7 @@ class FileViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
                             String.format("%.2f GB", size.toFloat() / 1024 / 1024 / 1024)
                 }
             }
-            setFileTypeImage(path, fileTypeImage)
+            setFileTypeImage(fileItem.path, fileTypeImage)
         }
     }
 

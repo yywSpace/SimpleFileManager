@@ -2,18 +2,21 @@ package com.yywspace.simplefilemanager.adapters
 
 import android.util.Log
 import android.view.LayoutInflater
+import android.view.View
 import android.view.ViewGroup
 import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
 import com.yywspace.simplefilemanager.R
+import com.yywspace.simplefilemanager.data.FileItem
 import com.yywspace.simplefilemanager.viewholders.EmptyViewHolder
 import com.yywspace.simplefilemanager.viewholders.FileViewHolder
-import java.nio.file.Path
 
-class FileListAdapter : ListAdapter<Path, RecyclerView.ViewHolder>(FileItemDiffCallback()) {
+class FileListAdapter : ListAdapter<FileItem, RecyclerView.ViewHolder>(FileItemDiffCallback()) {
     private val TAG = "FileListAdapter"
-    var onItemClickListener: ((Path) -> Unit)? = null
+    public var isMultiSelect = false
+    var onItemClickListener: ((FileItem, Int) -> Unit)? = null
+    var onItemLongClickListener: ((View, Int) -> Boolean)? = null
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): RecyclerView.ViewHolder {
         Log.d(TAG, "onCreateViewHolder: ")
@@ -22,7 +25,14 @@ class FileListAdapter : ListAdapter<Path, RecyclerView.ViewHolder>(FileItemDiffC
                 FileViewHolder(
                     LayoutInflater.from(parent.context)
                         .inflate(R.layout.item_file_list, parent, false)
-                )
+                ).apply {
+                    itemView.setOnClickListener {
+                        onItemClickListener?.invoke(currentList[adapterPosition],adapterPosition)
+                    }
+                    itemView.setOnLongClickListener {
+                        onItemLongClickListener?.invoke(it, adapterPosition)!!
+                    }
+                }
             // empty holder
             else ->
                 EmptyViewHolder(
@@ -30,7 +40,6 @@ class FileListAdapter : ListAdapter<Path, RecyclerView.ViewHolder>(FileItemDiffC
                         .inflate(R.layout.item_file_list_empty, parent, false)
                 )
         }
-
     }
 
     override fun getItemCount(): Int {
@@ -49,8 +58,7 @@ class FileListAdapter : ListAdapter<Path, RecyclerView.ViewHolder>(FileItemDiffC
         Log.d(TAG, "onBindViewHolder: ")
         when (holder) {
             is FileViewHolder -> {
-                holder.bind(currentList[position])
-                holder.onItemClickListener = onItemClickListener
+                holder.bind(currentList[position], isMultiSelect)
             }
         }
     }
@@ -61,12 +69,12 @@ class FileListAdapter : ListAdapter<Path, RecyclerView.ViewHolder>(FileItemDiffC
     }
 }
 
-private class FileItemDiffCallback : DiffUtil.ItemCallback<Path>() {
-    override fun areItemsTheSame(oldItem: Path, newItem: Path): Boolean {
-        return oldItem.fileName == newItem.fileName
+private class FileItemDiffCallback : DiffUtil.ItemCallback<FileItem>() {
+    override fun areItemsTheSame(oldItem: FileItem, newItem: FileItem): Boolean {
+        return oldItem.path.fileName == newItem.path.fileName
     }
 
-    override fun areContentsTheSame(oldItem: Path, newItem: Path): Boolean {
+    override fun areContentsTheSame(oldItem: FileItem, newItem: FileItem): Boolean {
         return oldItem == newItem
     }
 }

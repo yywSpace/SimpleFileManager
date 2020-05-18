@@ -34,6 +34,7 @@ import java.util.*
  * A simple [Fragment] subclass.
  */
 class FileSearchFragment : Fragment() {
+    private val TAG = "FileSearchFragment"
     private lateinit var fileAdapter: FileListAdapter
     private lateinit var historyAdapter: SearchHistoryAdapter
     private lateinit var searchView: SearchView
@@ -130,6 +131,7 @@ class FileSearchFragment : Fragment() {
         })
 
         viewModel.getHistory().observe(viewLifecycleOwner, Observer { searchHistories ->
+            Log.d(TAG, "onViewCreated: ${searchHistories.size}")
             historyAdapter.submitList(searchHistories)
         })
 

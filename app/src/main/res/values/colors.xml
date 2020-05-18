@@ -5,4 +5,5 @@
     <color name="colorAccent">#03DAC5</color>
     <color name="colorLightGray">#e3e3e3</color>
     <color name="colorItemBackground">#fafafa</color>
+    <color name="colorToolbar">#f5f5f5</color>
 </resources>

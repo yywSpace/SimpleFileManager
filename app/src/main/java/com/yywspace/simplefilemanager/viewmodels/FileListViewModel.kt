@@ -12,7 +12,7 @@ class FileListViewModel(application: Application) : BasicSortViewModel(applicati
 
     override fun initData(path: Path) {
         super.initData(path)
-        val list = initialPathList?.toMutableList()
+        val list = initialFileItemList?.toMutableList()
         initFileList(list!!, null)
         pathListLiveData.value = list
     }

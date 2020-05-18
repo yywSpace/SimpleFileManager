@@ -1,5 +1,6 @@
 package com.yywspace.simplefilemanager.adapters
 
+import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -25,7 +26,11 @@ class SearchHistoryAdapter :
                 SearchHistoryViewHolder(
                     LayoutInflater.from(parent.context)
                         .inflate(R.layout.item_file_search_history, parent, false)
-                )
+                ).apply {
+                    itemView.setOnClickListener {
+                        onItemClickListener?.invoke(currentList[adapterPosition])
+                    }
+                }
             DELETE_ITEM -> ClearHistoryViewHolder(
                 LayoutInflater.from(parent.context)
                     .inflate(R.layout.item_file_search_history_clear, parent, false)
@@ -43,8 +48,6 @@ class SearchHistoryAdapter :
         when (holder) {
             is SearchHistoryViewHolder -> {
                 holder.bind(currentList[position])
-                holder.onItemClickListener = onItemClickListener
-                holder.onDeleteButtonClickListener = onDeleteButtonClickListener
             }
         }
     }

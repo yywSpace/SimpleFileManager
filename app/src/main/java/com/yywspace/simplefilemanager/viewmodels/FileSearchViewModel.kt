@@ -9,12 +9,14 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.viewModelScope
+import com.yywspace.simplefilemanager.data.FileItem
 import com.yywspace.simplefilemanager.data.SearchHistory
 import com.yywspace.simplefilemanager.data.SearchHistoryRepository
 import com.yywspace.simplefilemanager.viewmodels.BasicSortViewModel.Companion.SETTING_PREF_NAME
 import kotlinx.coroutines.*
 import java.nio.file.*
 import java.nio.file.attribute.BasicFileAttributes
+import java.util.concurrent.ConcurrentLinkedQueue
 
 class FileSearchViewModel(application: Application) : BasicSortViewModel(application) {
     private val TAG = "FileSearchViewModel"
@@ -47,7 +49,7 @@ class FileSearchViewModel(application: Application) : BasicSortViewModel(applica
     }
 
     fun getSearchMode(): SearchMode {
-       return when (sharedPreferences.getInt(SEARCH_MODE, 0)) {
+        return when (sharedPreferences.getInt(SEARCH_MODE, 0)) {
             0 -> SearchMode.LOCAL
             else -> SearchMode.GLOBAL
         }
@@ -98,7 +100,7 @@ class FileSearchViewModel(application: Application) : BasicSortViewModel(applica
             Log.d(TAG, "searchInCurrentPath: ${isRecursiveSearch()}")
             searchJob?.cancel()
             searchJob = viewModelScope.launch {
-                var list: MutableList<Path>? = null
+                var list: MutableList<FileItem>? = null
                 withContext(Dispatchers.IO) {
                     list = searchRecursive(path!!, query)
                 }
@@ -108,8 +110,8 @@ class FileSearchViewModel(application: Application) : BasicSortViewModel(applica
             }
         } else {
             val searchedList =
-                initialPathList?.filter {
-                    it.fileName.toString().contains(query)
+                initialFileItemList?.filter {
+                    it.path.fileName.toString().contains(query)
                 }
             Log.d(TAG, "searchInCurrentPath: ${searchedList?.size}")
             pathListLiveData.value = searchedList?.toList()
@@ -123,7 +125,7 @@ class FileSearchViewModel(application: Application) : BasicSortViewModel(applica
         if (isRecursiveSearch()) {
             searchJob?.cancel()
             searchJob = viewModelScope.launch {
-                var list: MutableList<Path>? = null
+                var list: MutableList<FileItem>? = null
                 withContext(Dispatchers.IO) {
                     list = searchRecursive(Paths.get("/sdcard"), query)
                 }
@@ -135,14 +137,14 @@ class FileSearchViewModel(application: Application) : BasicSortViewModel(applica
                 Files.newDirectoryStream(Paths.get("/sdcard")).toList().filter {
                     it.fileName.toString().contains(query)
                 }
-            pathListLiveData.value = searchedList.toList()
+            pathListLiveData.value = searchedList.toList().map { FileItem(it, false) }
             searchStatus.value = SearchStatus.FINISH
         }
     }
 
-    private fun searchRecursive(path: Path, query: String): MutableList<Path> {
-        val searchedList: MutableList<Path> = mutableListOf()
-        Files.newDirectoryStream(path).toList().forEach {
+    private fun searchRecursive(path: Path, query: String): MutableList<FileItem> {
+        val searchedList: ConcurrentLinkedQueue<FileItem> = ConcurrentLinkedQueue()
+        Files.newDirectoryStream(path).toList().parallelStream().forEach {
             Files.walkFileTree(it, object : SimpleFileVisitor<Path>() {
                 override fun visitFile(
                     file: Path?,
@@ -154,9 +156,8 @@ class FileSearchViewModel(application: Application) : BasicSortViewModel(applica
                             if (!hasUnknownFile())
                                 if (toFile().extension == "")
                                     return FileVisitResult.CONTINUE
-
-                            searchedList.add(this)
-                            if (searchedList.size % 50 == 0)
+                            searchedList.add(FileItem(this, false))
+                            if (searchedList.size % MAX_LIST_UPDATE_SIZE == 0)
                                 pathListLiveData.postValue(searchedList.toList())
                             if (searchedList.size >= MAX_FILE_SIZE)
                                 return FileVisitResult.TERMINATE
@@ -172,10 +173,9 @@ class FileSearchViewModel(application: Application) : BasicSortViewModel(applica
                     dir?.apply {
                         if (fileName.toString().contains(query)) {
                             // Log.d(TAG, "dir: $fileName")
-                            searchedList.add(this)
-                            if (searchedList.size % 50 == 0) {
+                            searchedList.add(FileItem(this, false))
+                            if (searchedList.size % MAX_LIST_UPDATE_SIZE == 0)
                                 pathListLiveData.postValue(searchedList.toList())
-                            }
                         }
                         if (searchedList.size >= MAX_FILE_SIZE)
                             return FileVisitResult.TERMINATE
@@ -184,7 +184,7 @@ class FileSearchViewModel(application: Application) : BasicSortViewModel(applica
                 }
             })
         }
-        return searchedList
+        return searchedList.toMutableList()
     }
 
     companion object {
@@ -192,6 +192,7 @@ class FileSearchViewModel(application: Application) : BasicSortViewModel(applica
         const val RECURSIVE_SEARCH = "RECURSIVE_SEARCH"
         const val UNKNOWN_FILE = "UNKNOWN_FILE"
         const val MAX_FILE_SIZE = 500
+        const val MAX_LIST_UPDATE_SIZE = 50
     }
 }
 

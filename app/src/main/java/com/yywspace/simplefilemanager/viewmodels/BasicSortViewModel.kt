@@ -2,34 +2,69 @@ package com.yywspace.simplefilemanager.viewmodels
 
 import android.app.Application
 import android.content.Context
+import android.util.Log
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
+import com.yywspace.simplefilemanager.data.FileItem
 import java.nio.file.Files
 import java.nio.file.Path
 
 open class BasicSortViewModel(application: Application) : AndroidViewModel(application) {
-    var initialPathList: List<Path>? = null
-    protected val pathListLiveData = MutableLiveData<List<Path>>()
+    private val TAG = "BasicSortViewModel"
+    var initialFileItemList: List<FileItem>? = null
+    protected val pathListLiveData = MutableLiveData<List<FileItem>>()
 
     protected val sharedPreferences = application.getSharedPreferences(
         SETTING_PREF_NAME,
         Context.MODE_PRIVATE
     )!!
 
-    fun getLiveData(): LiveData<List<Path>> {
+    fun getLiveData(): LiveData<List<FileItem>> {
         return pathListLiveData
     }
 
+    fun selectAll() {
+        pathListLiveData.value?.forEach { it.selected = true }
+    }
+
+    fun unSelectAll() {
+        pathListLiveData.value?.forEach { it.selected = true }
+    }
+
+    fun reverseSelect() {
+        pathListLiveData.value?.forEach { it.selected = !it.selected }
+    }
+
+    fun deleteSelected() {
+
+    }
+
+    fun select(index: Int) {
+        Log.d(TAG, "select: $index")
+        pathListLiveData.value = pathListLiveData.value?.apply {
+            get(index).selected = true
+        }
+    }
+
+    fun unSelect(index: Int) {
+        pathListLiveData.value = pathListLiveData.value?.apply {
+            get(index).selected = false
+        }
+    }
+
+
     open fun initData(path: Path) {
-        initialPathList = Files.newDirectoryStream(path).toList()
+        initialFileItemList = Files.newDirectoryStream(path).toList().map {
+            FileItem(it, false)
+        }
     }
 
     fun sortByName(reverseOrder: Boolean) {
         if (reverseOrder)
-            pathListLiveData.value = pathListLiveData.value?.sortedByDescending { it.fileName }
+            pathListLiveData.value = pathListLiveData.value?.sortedByDescending { it.path.fileName }
         else
-            pathListLiveData.value = pathListLiveData.value?.sortedBy { it.fileName }
+            pathListLiveData.value = pathListLiveData.value?.sortedBy { it.path.fileName }
         with(sharedPreferences.edit()) {
             putBoolean(SORT_REVERSE_ORDER, reverseOrder)
             putString(SORT_TYPE, "name")
@@ -40,10 +75,10 @@ open class BasicSortViewModel(application: Application) : AndroidViewModel(appli
     fun sortByModifyTime(reverseOrder: Boolean) {
         if (reverseOrder)
             pathListLiveData.value =
-                pathListLiveData.value?.sortedByDescending { Files.getLastModifiedTime(it) }
+                pathListLiveData.value?.sortedByDescending { Files.getLastModifiedTime(it.path) }
         else
             pathListLiveData.value =
-                pathListLiveData.value?.sortedBy { Files.getLastModifiedTime(it) }
+                pathListLiveData.value?.sortedBy { Files.getLastModifiedTime(it.path) }
 
         with(sharedPreferences.edit()) {
             putBoolean(SORT_REVERSE_ORDER, reverseOrder)
@@ -54,9 +89,10 @@ open class BasicSortViewModel(application: Application) : AndroidViewModel(appli
 
     fun sortBySize(reverseOrder: Boolean) {
         if (reverseOrder)
-            pathListLiveData.value = pathListLiveData.value?.sortedByDescending { Files.size(it) }
+            pathListLiveData.value =
+                pathListLiveData.value?.sortedByDescending { Files.size(it.path) }
         else
-            pathListLiveData.value = pathListLiveData.value?.sortedBy { Files.size(it) }
+            pathListLiveData.value = pathListLiveData.value?.sortedBy { Files.size(it.path) }
         with(sharedPreferences.edit()) {
             putBoolean(SORT_REVERSE_ORDER, reverseOrder)
             putString(SORT_TYPE, "size")
@@ -66,12 +102,12 @@ open class BasicSortViewModel(application: Application) : AndroidViewModel(appli
 
     fun changeHiddenFileStatus(hasHiddenFile: Boolean) {
         if (hasHiddenFile) {
-            val list = initialPathList?.toMutableList()
+            val list = initialFileItemList?.toMutableList()
             initFileList(list!!, hasHiddenFile)
             pathListLiveData.value = list
         } else {
             pathListLiveData.value = pathListLiveData.value
-                ?.filter { !it.fileName.toString().startsWith(".") }
+                ?.filter { !it.path.fileName.toString().startsWith(".") }
         }
         with(sharedPreferences.edit()) {
             putBoolean(HIDDEN_FILE_STATUS, hasHiddenFile)
@@ -92,7 +128,7 @@ open class BasicSortViewModel(application: Application) : AndroidViewModel(appli
         return sharedPreferences.getBoolean(HIDDEN_FILE_STATUS, false)
     }
 
-    protected fun initFileList(pathList: MutableList<Path>, hiddenFile: Boolean?) {
+    protected fun initFileList(pathList: MutableList<FileItem>, hiddenFile: Boolean?) {
         val sortType = getCurrentSortType()
         val sortOrder = getCurrentSortOrder()
         var hasHiddenFile = hiddenFile
@@ -101,26 +137,26 @@ open class BasicSortViewModel(application: Application) : AndroidViewModel(appli
         }
         if (!hasHiddenFile) {
             pathList.removeIf {
-                it.fileName.toString().startsWith(".")
+                it.path.fileName.toString().startsWith(".")
             }
         }
         if (sortOrder) {
             when (sortType) {
-                "name" -> pathList.sortByDescending { it.fileName }
-                "size" -> pathList.sortByDescending { Files.size(it) }
+                "name" -> pathList.sortByDescending { it.path.fileName }
+                "size" -> pathList.sortByDescending { Files.size(it.path) }
                 "time" -> pathList.sortByDescending {
                     Files.getLastModifiedTime(
-                        it
+                        it.path
                     )
                 }
             }
         } else {
             when (sortType) {
-                "name" -> pathList.sortBy { it.fileName }
-                "size" -> pathList.sortBy { Files.size(it) }
+                "name" -> pathList.sortBy { it.path.fileName }
+                "size" -> pathList.sortBy { Files.size(it.path) }
                 "time" -> pathList.sortBy {
                     Files.getLastModifiedTime(
-                        it
+                        it.path
                     )
                 }
             }

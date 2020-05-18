@@ -2,7 +2,12 @@ package com.yywspace.simplefilemanager
 
 import android.annotation.SuppressLint
 import android.content.Context
+import android.content.res.Resources
+import android.graphics.Color
+import android.os.Build
 import android.os.Bundle
+import android.os.Handler
+import android.util.Log
 import android.view.*
 import android.widget.EditText
 import android.widget.Toast
@@ -51,18 +56,72 @@ class FileListFragment : Fragment() {
             getString(R.string.file_list_page_label)
     }
 
-    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
-        super.onViewCreated(view, savedInstanceState)
+    var actionMode: ActionMode? = null
+    private val actionModeCallback = object : ActionMode.Callback {
+        override fun onCreateActionMode(mode: ActionMode, menu: Menu): Boolean {
+            mode.menuInflater.inflate(R.menu.menu_file_select, menu)
+            requireActivity().window.statusBarColor =
+                resources.getColor(R.color.colorToolbar, null)
+            return true
+        }
 
-        adapter = FileListAdapter().apply {
-            onItemClickListener = {
-                Toast.makeText(requireContext(), it.toFile().extension, Toast.LENGTH_SHORT).show()
-                if (Files.isDirectory(it))
+        override fun onPrepareActionMode(mode: ActionMode, menu: Menu): Boolean {
+            adapter.isMultiSelect = true
+            adapter.onItemClickListener = { file, index ->
+                if (file.selected)
+                    viewModel.unSelect(index)
+                else
+                    viewModel.select(index)
+            }
+            return true
+        }
+
+        // Called when the user selects a contextual menu item
+        override fun onActionItemClicked(mode: ActionMode, item: MenuItem): Boolean {
+            return false
+        }
+
+        override fun onDestroyActionMode(mode: ActionMode) {
+            adapter.isMultiSelect = false
+            adapter.notifyDataSetChanged()
+            adapter.onItemClickListener = { file, _ ->
+                Toast.makeText(requireContext(), file.path.toFile().extension, Toast.LENGTH_SHORT)
+                    .show()
+                if (Files.isDirectory(file.path))
                     (parentFragment as FileListContainerFragment)
                         .addCrumbItem(
-                            it.fileName.toString(),
-                            newInstance(it.toFile().absolutePath)
+                            file.path.fileName.toString(),
+                            newInstance(file.path.toFile().absolutePath)
                         )
+            }
+            actionMode = null
+        }
+    }
+
+    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
+        super.onViewCreated(view, savedInstanceState)
+        adapter = FileListAdapter().apply {
+            onItemClickListener = { file, _ ->
+                Toast.makeText(requireContext(), file.path.toFile().extension, Toast.LENGTH_SHORT)
+                    .show()
+                if (Files.isDirectory(file.path))
+                    (parentFragment as FileListContainerFragment)
+                        .addCrumbItem(
+                            file.path.fileName.toString(),
+                            newInstance(file.path.toFile().absolutePath)
+                        )
+            }
+            onItemLongClickListener = { _, i ->
+                // Called when the user long-clicks on someView
+                when (actionMode) {
+                    null -> {
+                        // Start the CAB using the ActionMode.Callback defined above
+                        actionMode = activity?.startActionMode(actionModeCallback)
+                        viewModel.select(i)
+                        true
+                    }
+                    else -> false
+                }
             }
         }
 
@@ -79,12 +138,15 @@ class FileListFragment : Fragment() {
         viewModel.initData(Paths.get(folderPath!!))
         viewModel.getLiveData().observe(viewLifecycleOwner, Observer { pathList ->
             adapter.submitList(pathList)
-            fileRecyclerView.apply {
-                postDelayed({
-                    (layoutManager as LinearLayoutManager)
-                        .scrollToPositionWithOffset(0, 0)
-                }, 100)
-            }
+            if (!adapter.isMultiSelect)
+                fileRecyclerView.apply {
+                    postDelayed({
+                        (layoutManager as LinearLayoutManager)
+                            .scrollToPositionWithOffset(0, 0)
+                    }, 100)
+                }
+            else
+                adapter.notifyDataSetChanged()
         })
     }
 
@@ -96,10 +158,8 @@ class FileListFragment : Fragment() {
 
     @SuppressLint("InflateParams")
     override fun onOptionsItemSelected(item: MenuItem): Boolean {
-
         val sortType = viewModel.getCurrentSortType()
         val sortOrder = viewModel.getCurrentSortOrder()
-
         return when (item.itemId) {
             R.id.sort -> {
                 with(
@@ -188,7 +248,6 @@ class FileListFragment : Fragment() {
                 super.onOptionsItemSelected(item)
         }
     }
-
 
     companion object {
         const val CURRENT_PATH = "CURRENT_PATH"

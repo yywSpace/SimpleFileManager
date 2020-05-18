@@ -24,7 +24,6 @@ class MainActivity : AppCompatActivity() {
 
         val toolbar = findViewById<Toolbar>(R.id.file_list_tool_bar)
         toolbar.setPadding(0, getStatusBarHeight(), 0, 0)
-
         setSupportActionBar(toolbar)
         // toolbar绑定NavController
         val navController = findNavController(R.id.nav_host_fragment)
@@ -53,7 +52,6 @@ class MainActivity : AppCompatActivity() {
                 )
             }
         }
-
     }
 
     // only work in activity onCreate
