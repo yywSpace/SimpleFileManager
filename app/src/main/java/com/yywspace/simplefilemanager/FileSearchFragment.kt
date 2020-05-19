@@ -22,6 +22,7 @@ import com.yywspace.simplefilemanager.adapters.FileListAdapter
 import com.yywspace.simplefilemanager.adapters.SearchHistoryAdapter
 import com.yywspace.simplefilemanager.data.SearchHistory
 import com.yywspace.simplefilemanager.viewmodels.FileSearchViewModel
+import com.yywspace.simplefilemanager.viewmodels.FileSearchViewModelFactory
 import com.yywspace.simplefilemanager.viewmodels.SearchMode
 import com.yywspace.simplefilemanager.viewmodels.SearchStatus
 import kotlinx.android.synthetic.main.dialog_file_list_sort_layout.view.*
@@ -39,7 +40,10 @@ class FileSearchFragment : Fragment() {
     private lateinit var historyAdapter: SearchHistoryAdapter
     private lateinit var searchView: SearchView
     private var currentPath: String? = null
-    val viewModel: FileSearchViewModel by viewModels()
+    val viewModel: FileSearchViewModel by viewModels {
+        FileSearchViewModelFactory(requireActivity().application, this)
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setHasOptionsMenu(true)
@@ -296,7 +300,8 @@ class FileSearchFragment : Fragment() {
     }
 
     fun hideInputKeyboard() {
-        val imm = requireActivity().getSystemService(Context.INPUT_METHOD_SERVICE)  as InputMethodManager
+        val imm =
+            requireActivity().getSystemService(Context.INPUT_METHOD_SERVICE) as InputMethodManager
         val view: View = requireActivity().window.peekDecorView()
         imm.hideSoftInputFromWindow(view.windowToken, 0)
     }

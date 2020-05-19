@@ -20,7 +20,6 @@ class FileSearchViewModel(handle: SavedStateHandle, application: Application) :
     private val TAG = "FileSearchViewModel"
     private var searchJob: Job? = null
     private val historyRepository = SearchHistoryRepository.getInstance(application)
-    private var path: Path? = null
     var searchStatus = MutableLiveData<SearchStatus>()
 
     fun deleteHistory(history: SearchHistory) {
@@ -87,8 +86,8 @@ class FileSearchViewModel(handle: SavedStateHandle, application: Application) :
         }
     }
 
-    override fun initData(path: Path) {
-        super.initData(path)
+    override fun initData(path: Path, refresh: Boolean) {
+        super.initData(path,refresh)
         this.path = path
     }
 

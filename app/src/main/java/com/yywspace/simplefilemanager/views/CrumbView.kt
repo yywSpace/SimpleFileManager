@@ -11,11 +11,13 @@ import android.widget.TextView
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.FragmentManager
 import androidx.fragment.app.FragmentTransaction
+import com.yywspace.simplefilemanager.FileListFragment
 import com.yywspace.simplefilemanager.R
 import kotlinx.android.synthetic.main.crumb_item_layout.view.*
 import kotlinx.android.synthetic.main.crumb_layout.view.*
 
 class CrumbView(context: Context?, attrs: AttributeSet?) : LinearLayout(context, attrs) {
+    private var fragmentMap: MutableMap<String, Fragment> = mutableMapOf()
     private lateinit var fragmentManager: FragmentManager
     private lateinit var container: LinearLayout
     private lateinit var firstFixedCrumb: LinearLayout
@@ -59,6 +61,12 @@ class CrumbView(context: Context?, attrs: AttributeSet?) : LinearLayout(context,
         }
     }
 
+    fun setItemsClickable(clickable: Boolean) {
+        firstFixedCrumb.isClickable = clickable
+        for (i in 0 until container.childCount)
+            container.getChildAt(i).isClickable = clickable
+    }
+
     fun addFirstFixedCrumbItem(fragmentContainerId: Int, title: String, fragment: Fragment) {
         if (!isFirstFragment)
             return
@@ -80,9 +88,14 @@ class CrumbView(context: Context?, attrs: AttributeSet?) : LinearLayout(context,
         }
     }
 
-    fun addCrumbItem(fragmentContainerId: Int, title: String, fragment: Fragment) {
+    fun addCrumbItem(fragmentContainerId: Int, title: String, fragment: Fragment, tag: String) {
         val fragmentTransaction: FragmentTransaction = fragmentManager.beginTransaction()
-        fragmentTransaction.replace(fragmentContainerId, fragment)
+        if (fragmentMap.containsKey(tag)) {
+            fragmentMap[tag]?.let { fragmentTransaction.replace(fragmentContainerId, it) }
+        } else {
+            fragmentMap[tag] = fragment
+            fragmentTransaction.replace(fragmentContainerId, fragment)
+        }
         if (isFirstFragment) {
             crumb_item_view.visibility = View.GONE
             isFirstFragment = false
@@ -94,7 +107,7 @@ class CrumbView(context: Context?, attrs: AttributeSet?) : LinearLayout(context,
         ) {
             crumb_name.setTextColor(selectColor)
             crumb_name.text = title
-            crumb_name.setOnClickListener {
+            setOnClickListener {
                 if (id < 0) {
                     (it as TextView).setTextColor(selectColor)
                     if (fragmentManager.backStackEntryCount == 0)

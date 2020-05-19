@@ -9,14 +9,21 @@ import java.nio.file.Path
 
 class FileListViewModel(handle: SavedStateHandle, application: Application) :
     BasicSortViewModel(handle, application) {
-    var currentPath: Path? = null
     private val TAG = "FileListViewModel"
-    override fun initData(path: Path) {
-        super.initData(path)
+    override fun initData(path: Path, refresh: Boolean) {
         currentPath = path
-        val list = initialFileItemList?.toMutableList()
-        initFileList(list!!, null)
-        Log.d(TAG, "initData: ${path}")
-        pathListLiveData.value = list
+        if (initialFileItemList == null || refresh) {
+            super.initData(path, refresh)
+            val list = initialFileItemList?.toMutableList()
+            initFileList(list!!, null)
+            Log.d(TAG, "initData: ${path}")
+            pathListLiveData.value = list
+            return
+        }
+    }
+
+    companion object {
+        var currentPath: Path? = null
+        var isActionModeOn = false
     }
 }

@@ -8,13 +8,18 @@ import com.yywspace.simplefilemanager.data.FileItem
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import java.io.File
+import java.io.InputStream
 import java.nio.file.Files
 import java.nio.file.Path
+import java.nio.file.Paths
+import java.nio.file.StandardCopyOption
 
 open class BasicSortViewModel(val handle: SavedStateHandle, application: Application) :
     AndroidViewModel(application) {
     private val TAG = "BasicSortViewModel"
-    var initialFileItemList: List<FileItem>? = null
+    var path: Path? = null
+    var initialFileItemList: MutableList<FileItem>? = null
     protected val pathListLiveData = MutableLiveData<List<FileItem>>()
 
     protected val sharedPreferences = application.getSharedPreferences(
@@ -43,30 +48,105 @@ open class BasicSortViewModel(val handle: SavedStateHandle, application: Applica
             pathListLiveData.value?.apply { forEach { it.selected = !it.selected } }
     }
 
-    fun deleteSelected() {
-        val selectList = getSelectList()
-        pathListLiveData.value = getUnSelectList()
-        viewModelScope.launch {
-            withContext(Dispatchers.IO) {
-                selectList?.filter { it.selected }?.forEach {
-                    if (Files.isDirectory(it.path))
-                        deleteDir(it.path)
+    fun createFolder(newFile: Path): Boolean {
+        if (Files.exists(newFile)) {
+            return false
+        } else {
+            val path = Files.createDirectory(newFile)
+            pathListLiveData.value =
+                pathListLiveData.value?.toMutableList()?.apply {
+                    add(FileItem(path, false))
                 }
-            }
+            initialFileItemList?.add(FileItem(path, false))
+            return true
         }
+    }
 
+    fun deleteSelected(onDelete: (() -> Unit)?) {
+        val selectList = getSelectList()
+        Log.d(TAG, "deleteSelected11: ${selectList}")
+        Log.d(TAG, "deleteSelected22: ${selectList}")
+        Log.d(TAG, "deleteSelected33: ${selectList}")
+        Log.d(TAG, "deleteSelected44: ${selectList}")
+        selectList?.forEach {
+            deleteDir(it.path)
+        }
+        onDelete?.invoke()
+    }
+
+    private fun copyFolder(src: Path, dest: Path) {
+        if (Files.isDirectory(src)) {
+            Log.d(TAG, "src: ${src}")
+            Log.d(TAG, "dest: ${dest}")
+            if (!Files.exists(dest)) {
+                Files.createDirectory(dest)
+            }
+            Files.newDirectoryStream(src).toList().forEach {
+                val srcFile = Paths.get(
+                    src.toAbsolutePath().toString() + File.separator + it.fileName.toString()
+                )
+                val destFile = Paths.get(
+                    dest.toAbsolutePath().toString() + File.separator + it.fileName.toString()
+                )
+                // 递归复制
+                copyFolder(srcFile, destFile)
+            }
+        } else {
+            Log.d(TAG, "copyFolder: ${dest}")
+            Files.copy(
+                src,
+                dest
+            )
+        }
+    }
+
+    fun copySelectedTo(path: Path, onCopy: (() -> Unit)?) {
+        Log.d(TAG, "cutSelectedTo: ${pathListLiveData.value}")
+        val selectList = getSelectList()
+        selectList?.forEach {
+            Log.d(TAG, "getSelectList forEach: ${it}")
+            val newFile = Paths.get(
+                path.toAbsolutePath()
+                    .toString() + File.separator + it.path.fileName.toString()
+            )
+            copyFolder(it.path, newFile)
+        }
+        onCopy?.invoke()
+    }
+
+    fun cutSelectedTo(path: Path, onCut: (() -> Unit)?) {
+        val selectList = getSelectList()
+        selectList?.forEach {
+            val newFile = Paths.get(
+                path.toAbsolutePath()
+                    .toString() + File.separator + it.path.fileName.toString()
+            )
+            copyFolder(it.path, newFile)
+        }
+        selectList?.forEach {
+            deleteDir(it.path)
+        }
+        onCut?.invoke()
     }
 
     private fun deleteDir(path: Path) {
+        Log.d(TAG, "deleteDir: ${path}")
+        Log.d(TAG, "exists: ${Files.exists(path)}")
         if (Files.isDirectory(path)) {
             for (f in Files.newDirectoryStream(path).toList())
                 deleteDir(f)
+            Files.delete(path)
+        } else {
+
+            Files.delete(path)
         }
-        Files.deleteIfExists(path)
     }
 
     fun getSelectList(): List<FileItem>? {
-        return pathListLiveData.value?.filter { it.selected }
+        Log.d(TAG, "getSelectList: ${pathListLiveData.value}")
+        return pathListLiveData.value?.filter {
+            it.selected
+        }
     }
 
     fun getUnSelectList(): List<FileItem>? {
@@ -87,12 +167,11 @@ open class BasicSortViewModel(val handle: SavedStateHandle, application: Applica
     }
 
 
-    open fun initData(path: Path) {
-        if (initialFileItemList != null)
-            return
+    open fun initData(path: Path, refresh: Boolean = false) {
+        this.path = path
         initialFileItemList = Files.newDirectoryStream(path).toList().map {
             FileItem(it, false)
-        }
+        }.toMutableList()
     }
 
     fun sortByName(reverseOrder: Boolean) {
