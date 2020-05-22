@@ -7,30 +7,34 @@ import androidx.fragment.app.Fragment
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import kotlinx.android.synthetic.main.fragment_file_list_container.*
+import com.yywspace.simplefilemanager.viewmodels.FileSourceType
+import com.yywspace.simplefilemanager.viewmodels.GlobalViewModel
+import kotlinx.android.synthetic.main.fragment_local_file_list_container.*
 
-class FileListContainerFragment : Fragment() {
+class LocalFileListContainerFragment : Fragment() {
     private val TAG = "FileListContainerFragment"
+    private val globalViewModel = GlobalViewModel.getInstance()
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
         savedInstanceState: Bundle?
     ): View? {
+        globalViewModel.currentSourceType = FileSourceType.LOCAL
         Log.d(TAG, "onCreateView: ")
         // Inflate the layout for this fragment
-        return inflater.inflate(R.layout.fragment_file_list_container, container, false)
+        return inflater.inflate(R.layout.fragment_local_file_list_container, container, false)
     }
 
     @SuppressLint("SdCardPath")
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         Log.d(TAG, "onViewCreated: ")
         super.onViewCreated(view, savedInstanceState)
-        fragment = FileListFragment.newInstance("/sdcard")
+        globalViewModel.currentFragment = FileListFragment.newInstance("/sdcard")
         crumbView.setFragmentTransaction(childFragmentManager)
         crumbView.addFirstFixedCrumbItem(
             R.id.fragment_container,
             "sdcard",
-            fragment
+            globalViewModel.currentFragment!!
         )
     }
 
@@ -42,13 +46,4 @@ class FileListContainerFragment : Fragment() {
             tag
         )
     }
-
-    companion object{
-        private lateinit var fragment: Fragment
-
-        fun getFirstFragment(): Fragment {
-            return fragment
-        }
-    }
-
 }

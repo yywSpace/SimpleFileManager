@@ -16,7 +16,7 @@ import java.util.*
 class FileViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
 
     fun bind(fileItem: FileItem, isMultiSelect: Boolean) {
-        if (!Files.exists(fileItem.path))
+        if (!fileItem.exists)
             return
         with(itemView) {
             if (isMultiSelect) {
@@ -30,19 +30,19 @@ class FileViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
             else
                 itemView.setBackgroundColor(resources.getColor(R.color.colorItemBackground, null))
 
-            fileName.text = fileItem.path.fileName.toString()
+            fileName.text = fileItem.name
             fileModifyDate.text = SimpleDateFormat("yyyy.MM.dd", Locale.getDefault()).format(
                 Date(
-                    Files.getLastModifiedTime(fileItem.path).toMillis()
+                    fileItem.lastModified
                 )
             )
-            if (Files.isDirectory(fileItem.path))
+            if (fileItem.isDirectory)
                 fileSize.text = context.getString(
                     R.string.folder_size_label,
-                    Files.newDirectoryStream(fileItem.path).toMutableList().size
+                    fileItem.childCount
                 )
             else {
-                val size = Files.size(fileItem.path)
+                val size = fileItem.length
                 when (0.toLong()) {
                     size / 1024 ->
                         fileSize.text = String.format("%.2f Byte", size.toFloat())
@@ -55,13 +55,13 @@ class FileViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
                             String.format("%.2f GB", size.toFloat() / 1024 / 1024 / 1024)
                 }
             }
-            setFileTypeImage(fileItem.path, fileTypeImage)
+            setFileTypeImage(fileItem, fileTypeImage)
         }
     }
 
 
-    private fun setFileTypeImage(path: Path, fileTypeImage: ImageView) {
-        when (path.toFile().extension.toLowerCase(Locale.getDefault())) {
+    private fun setFileTypeImage(fileItem: FileItem, fileTypeImage: ImageView) {
+        when (fileItem.extension.toLowerCase(Locale.getDefault())) {
             "pdf" -> fileTypeImage.setImageResource(R.drawable.ic_file_type_pdf)
             "iso" -> fileTypeImage.setImageResource(R.drawable.ic_file_type_iso)
             "cad" -> fileTypeImage.setImageResource(R.drawable.ic_file_type_cad)
@@ -87,7 +87,7 @@ class FileViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
                 fileTypeImage.setImageResource(R.drawable.ic_file_type_other)
         }
 
-        if (Files.isDirectory(path)) {
+        if (fileItem.isDirectory) {
             fileTypeImage.setImageResource(R.drawable.ic_file_type_folder)
         }
     }

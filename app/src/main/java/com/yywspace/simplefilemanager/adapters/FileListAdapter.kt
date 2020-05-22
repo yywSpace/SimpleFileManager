@@ -14,7 +14,7 @@ import com.yywspace.simplefilemanager.viewholders.FileViewHolder
 
 class FileListAdapter : ListAdapter<FileItem, RecyclerView.ViewHolder>(FileItemDiffCallback()) {
     private val TAG = "FileListAdapter"
-    public var isMultiSelect = false
+    var isMultiSelect = false
     var onItemClickListener: ((FileItem, Int) -> Unit)? = null
     var onItemLongClickListener: ((View, Int) -> Boolean)? = null
 
@@ -71,7 +71,7 @@ class FileListAdapter : ListAdapter<FileItem, RecyclerView.ViewHolder>(FileItemD
 
 private class FileItemDiffCallback : DiffUtil.ItemCallback<FileItem>() {
     override fun areItemsTheSame(oldItem: FileItem, newItem: FileItem): Boolean {
-        return oldItem.path.fileName == newItem.path.fileName
+        return oldItem.path == newItem.path
     }
 
     override fun areContentsTheSame(oldItem: FileItem, newItem: FileItem): Boolean {

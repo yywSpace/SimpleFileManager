@@ -6,9 +6,9 @@
     app:startDestination="@id/fileListContainerFragment">
     <fragment
         android:id="@+id/fileListContainerFragment"
-        android:name="com.yywspace.simplefilemanager.FileListContainerFragment"
+        android:name="com.yywspace.simplefilemanager.LocalFileListContainerFragment"
         android:label="@string/file_list_page_label"
-        tools:layout="@layout/fragment_file_list_container" >
+        tools:layout="@layout/fragment_local_file_list_container" >
         <action
             android:id="@+id/action_fileListContainerFragment_to_fileSearchFragment"
             app:destination="@id/fileSearchFragment" />

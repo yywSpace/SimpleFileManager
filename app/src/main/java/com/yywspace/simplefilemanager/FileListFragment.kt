@@ -9,7 +9,7 @@ import android.widget.EditText
 import android.widget.Toast
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
-import androidx.core.view.forEachIndexed
+import androidx.core.view.forEach
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
 import androidx.lifecycle.Observer
@@ -19,11 +19,11 @@ import androidx.recyclerview.widget.LinearLayoutManager
 import com.yywspace.simplefilemanager.adapters.FileListAdapter
 import com.yywspace.simplefilemanager.viewmodels.FileListViewModel
 import com.yywspace.simplefilemanager.viewmodels.FileListViewModelFactory
+import com.yywspace.simplefilemanager.viewmodels.GlobalViewModel
 import kotlinx.android.synthetic.main.dialog_file_list_sort_layout.view.*
 import kotlinx.android.synthetic.main.fragment_file_list.*
-import kotlinx.android.synthetic.main.fragment_file_list_container.*
+import kotlinx.android.synthetic.main.fragment_local_file_list_container.*
 import java.io.File
-import java.nio.file.Files
 import java.nio.file.Paths
 
 private const val ARG_FOLDER_PATH = "folder_path"
@@ -31,6 +31,7 @@ private const val ARG_FOLDER_PATH = "folder_path"
 class FileListFragment : Fragment() {
     private val TAG = "FileListFragment"
     var isCut = false
+    private val globalViewModel = GlobalViewModel.getInstance()
     private val viewModel: FileListViewModel by viewModels {
         FileListViewModelFactory(requireActivity().application, this)
     }
@@ -56,7 +57,8 @@ class FileListFragment : Fragment() {
         savedInstanceState: Bundle?
     ): View? {
         Log.d(TAG, "onCreateView: ")
-        // Inflate the layout for this fragment
+        globalViewModel.currentPath = folderPath
+        globalViewModel.currentFragment = this
         return inflater.inflate(R.layout.fragment_file_list, container, false)
     }
 
@@ -69,6 +71,7 @@ class FileListFragment : Fragment() {
     var actionMode: ActionMode? = null
     private val actionModeCallback = object : ActionMode.Callback {
         override fun onCreateActionMode(mode: ActionMode, menu: Menu): Boolean {
+            globalViewModel.currentSelectList.clear()
             mode.menuInflater.inflate(R.menu.menu_file_select, menu)
             requireActivity().window.statusBarColor =
                 resources.getColor(R.color.colorToolbar, null)
@@ -76,14 +79,20 @@ class FileListFragment : Fragment() {
         }
 
         override fun onPrepareActionMode(mode: ActionMode, menu: Menu): Boolean {
-            (parentFragment as FileListContainerFragment).crumbView.setItemsClickable(false)
-            FileListViewModel.isActionModeOn = true
+            globalViewModel.isActionModeOn = true
+            (parentFragment as LocalFileListContainerFragment).crumbView.setItemsClickable(false)
             adapter.isMultiSelect = true
             adapter.onItemClickListener = { file, index ->
-                if (file.selected)
-                    viewModel.unSelect(index)
-                else
-                    viewModel.select(index)
+                if (file.selected) {
+                    val item = viewModel.unSelect(index)
+                    globalViewModel.currentSelectList.remove(item!!)
+                    Log.d(TAG, "remove: ${globalViewModel.currentSelectList.size}")
+                } else {
+                    val item = viewModel.select(index)
+                    globalViewModel.currentSelectList.add(item!!)
+                    Log.d(TAG, "add: ${globalViewModel.currentSelectList.size}")
+                }
+                actionMode?.title = globalViewModel.currentSelectList.size.toString()
             }
             return true
         }
@@ -94,7 +103,7 @@ class FileListFragment : Fragment() {
                 R.id.action_select_all -> {
                     Toast.makeText(
                         requireContext(),
-                        "${FileListViewModel.currentPath}",
+                        "${globalViewModel.currentPath}",
                         Toast.LENGTH_SHORT
                     ).show()
                     item.isChecked = !item.isChecked
@@ -112,11 +121,11 @@ class FileListFragment : Fragment() {
                         setMessage(
                             getString(
                                 R.string.delete_file_message,
-                                viewModel.getSelectList()?.size
+                                globalViewModel.currentSelectList.size
                             )
                         )
                         setPositiveButton(R.string.confirm_label) { _, _ ->
-                            viewModel.deleteSelected {
+                            globalViewModel.deleteSelected {
                                 viewModel.initData(Paths.get(folderPath!!), true)
                             }
                             actionMode?.finish()
@@ -130,37 +139,21 @@ class FileListFragment : Fragment() {
                 R.id.action_paste -> {
                     Log.d("BasicSortViewModel", "action_paste: ${viewModel.getLiveData().value}")
                     if (isCut) {
-                        viewModel.cutSelectedTo(FileListViewModel.currentPath!!) {
-                            if (parentFragment == null) {
-                                (FileListContainerFragment.getFirstFragment() as FileListFragment).initData()
-                            } else
-                                (parentFragment as FileListContainerFragment).childFragmentManager.fragments.apply {
-                                    (get(size - 1) as FileListFragment).initData()
-                                }
+                        globalViewModel.cutSelectedTo {
+                            (globalViewModel.currentFragment as FileListFragment).initData()
                         }
                     } else {
-                        viewModel.copySelectedTo(FileListViewModel.currentPath!!) {
-                            if (parentFragment == null) {
-                                (FileListContainerFragment.getFirstFragment() as FileListFragment).initData()
-                            } else
-                                (parentFragment as FileListContainerFragment).childFragmentManager.fragments.apply {
-                                    (get(size - 1) as FileListFragment).initData()
-                                }
+                        globalViewModel.copySelectedTo {
+                            (globalViewModel.currentFragment as FileListFragment).initData()
                         }
                     }
                     actionMode?.finish()
-
-//                    Toast.makeText(
-//                        requireContext(),
-//                        "${FileListViewModel.currentPath}",
-//                        Toast.LENGTH_SHORT
-//                    ).show()
                 }
                 R.id.action_cut, R.id.action_copy -> {
-                    (parentFragment as FileListContainerFragment).crumbView.setItemsClickable(true)
+                    (parentFragment as LocalFileListContainerFragment).crumbView.setItemsClickable(true)
                     isCut = R.id.action_cut == item.itemId
                     actionMode?.title = "请选择路径"
-                    actionMode?.menu?.forEachIndexed { id, menuItem ->
+                    actionMode?.menu?.forEach { menuItem ->
                         menuItem.isVisible = !menuItem.isVisible
                     }
                     Log.d("BasicSortViewModel", "action_copy: ${viewModel.getLiveData().value}")
@@ -174,12 +167,12 @@ class FileListFragment : Fragment() {
                                 Toast.LENGTH_SHORT
                             ).show()
                         } else {
-                            if (Files.isDirectory(file.path))
-                                (parentFragment as FileListContainerFragment)
+                            if (file.isDirectory)
+                                (parentFragment as LocalFileListContainerFragment)
                                     .addCrumbItem(
-                                        file.path.fileName.toString(),
-                                        newInstance(file.path.toFile().absolutePath),
-                                        file.path.toAbsolutePath().toString()
+                                        file.name,
+                                        newInstance(file.path),
+                                        file.path
                                     )
                         }
                     }
@@ -189,22 +182,22 @@ class FileListFragment : Fragment() {
         }
 
         override fun onDestroyActionMode(mode: ActionMode) {
-            FileListViewModel.isActionModeOn = false
+            globalViewModel.isActionModeOn = false
             parentFragment?.apply {
-                (this as FileListContainerFragment).crumbView.setItemsClickable(true)
+                (this as LocalFileListContainerFragment).crumbView.setItemsClickable(true)
             }
             viewModel.unSelectAll()
             adapter.isMultiSelect = false
             adapter.notifyDataSetChanged()
             adapter.onItemClickListener = { file, _ ->
-                Toast.makeText(requireContext(), file.path.toFile().extension, Toast.LENGTH_SHORT)
+                Toast.makeText(requireContext(), file.extension, Toast.LENGTH_SHORT)
                     .show()
-                if (Files.isDirectory(file.path))
-                    (parentFragment as FileListContainerFragment)
+                if (file.isDirectory)
+                    (parentFragment as LocalFileListContainerFragment)
                         .addCrumbItem(
-                            file.path.fileName.toString(),
-                            newInstance(file.path.toFile().absolutePath),
-                            file.path.toAbsolutePath().toString()
+                            file.name,
+                            newInstance(file.path),
+                            file.path
                         )
             }
             actionMode = null
@@ -215,14 +208,14 @@ class FileListFragment : Fragment() {
         super.onViewCreated(view, savedInstanceState)
         adapter = FileListAdapter().apply {
             onItemClickListener = { file, _ ->
-                Toast.makeText(requireContext(), file.path.toFile().extension, Toast.LENGTH_SHORT)
+                Toast.makeText(requireContext(), file.extension, Toast.LENGTH_SHORT)
                     .show()
-                if (Files.isDirectory(file.path))
-                    (parentFragment as FileListContainerFragment)
+                if (file.isDirectory)
+                    (parentFragment as LocalFileListContainerFragment)
                         .addCrumbItem(
-                            file.path.fileName.toString(),
-                            newInstance(file.path.toFile().absolutePath),
-                            file.path.toAbsolutePath().toString()
+                            file.name,
+                            newInstance(file.path),
+                            file.path
                         )
             }
             onItemLongClickListener = { _, i ->
@@ -231,7 +224,9 @@ class FileListFragment : Fragment() {
                     null -> {
                         // Start the CAB using the ActionMode.Callback defined above
                         actionMode = activity?.startActionMode(actionModeCallback)
-                        viewModel.select(i)
+                        val fileItem = viewModel.select(i)!!
+                        globalViewModel.currentSelectList.add(fileItem)
+                        actionMode?.title = globalViewModel.currentSelectList.size.toString()
                         true
                     }
                     else -> false
@@ -249,7 +244,7 @@ class FileListFragment : Fragment() {
                 )
             )
         }
-        viewModel.initData(Paths.get(folderPath!!), !FileListViewModel.isActionModeOn)
+        viewModel.initData(Paths.get(folderPath!!), !globalViewModel.isActionModeOn)
         viewModel.getLiveData().observe(viewLifecycleOwner, Observer { pathList ->
             adapter.submitList(pathList)
             if (!adapter.isMultiSelect)
@@ -261,7 +256,6 @@ class FileListFragment : Fragment() {
                 }
             else
                 adapter.notifyDataSetChanged()
-            actionMode?.title = viewModel.getSelectList()?.size.toString()
         })
     }
 

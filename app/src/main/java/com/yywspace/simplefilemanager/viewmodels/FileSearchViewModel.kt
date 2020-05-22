@@ -108,7 +108,7 @@ class FileSearchViewModel(handle: SavedStateHandle, application: Application) :
         } else {
             val searchedList =
                 initialFileItemList?.filter {
-                    it.path.fileName.toString().contains(query)
+                    it.name.contains(query)
                 }
             Log.d(TAG, "searchInCurrentPath: ${searchedList?.size}")
             pathListLiveData.value = searchedList?.toList()
@@ -134,7 +134,7 @@ class FileSearchViewModel(handle: SavedStateHandle, application: Application) :
                 Files.newDirectoryStream(Paths.get("/sdcard")).toList().filter {
                     it.fileName.toString().contains(query)
                 }
-            pathListLiveData.value = searchedList.toList().map { FileItem(it, false) }
+            pathListLiveData.value = searchedList.toList().map { FileItem.fromLocalFile(it) }
             searchStatus.value = SearchStatus.FINISH
         }
     }
@@ -153,7 +153,7 @@ class FileSearchViewModel(handle: SavedStateHandle, application: Application) :
                             if (!hasUnknownFile())
                                 if (toFile().extension == "")
                                     return FileVisitResult.CONTINUE
-                            searchedList.add(FileItem(this, false))
+                            searchedList.add(FileItem.fromLocalFile(this))
                             if (searchedList.size % MAX_LIST_UPDATE_SIZE == 0)
                                 pathListLiveData.postValue(searchedList.toList())
                             if (searchedList.size >= MAX_FILE_SIZE)
@@ -170,7 +170,7 @@ class FileSearchViewModel(handle: SavedStateHandle, application: Application) :
                     dir?.apply {
                         if (fileName.toString().contains(query)) {
                             // Log.d(TAG, "dir: $fileName")
-                            searchedList.add(FileItem(this, false))
+                            searchedList.add(FileItem.fromLocalFile(this))
                             if (searchedList.size % MAX_LIST_UPDATE_SIZE == 0)
                                 pathListLiveData.postValue(searchedList.toList())
                         }

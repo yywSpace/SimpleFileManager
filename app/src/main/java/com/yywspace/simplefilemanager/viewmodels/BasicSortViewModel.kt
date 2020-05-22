@@ -31,154 +31,19 @@ open class BasicSortViewModel(val handle: SavedStateHandle, application: Applica
         return pathListLiveData
     }
 
-    fun selectAll() {
-        pathListLiveData.value = pathListLiveData.value?.apply { forEach { it.selected = true } }
-    }
-
-    fun unSelectAll() {
-        pathListLiveData.value = pathListLiveData.value?.apply { forEach { it.selected = false } }
-    }
-
-    fun isSelected(index: Int): Boolean? {
-        return pathListLiveData.value?.get(index)?.selected
-    }
-
-    fun reverseSelect() {
-        pathListLiveData.value =
-            pathListLiveData.value?.apply { forEach { it.selected = !it.selected } }
-    }
-
-    fun createFolder(newFile: Path): Boolean {
-        if (Files.exists(newFile)) {
-            return false
-        } else {
-            val path = Files.createDirectory(newFile)
-            pathListLiveData.value =
-                pathListLiveData.value?.toMutableList()?.apply {
-                    add(FileItem(path, false))
-                }
-            initialFileItemList?.add(FileItem(path, false))
-            return true
-        }
-    }
-
-    fun deleteSelected(onDelete: (() -> Unit)?) {
-        val selectList = getSelectList()
-        Log.d(TAG, "deleteSelected11: ${selectList}")
-        Log.d(TAG, "deleteSelected22: ${selectList}")
-        Log.d(TAG, "deleteSelected33: ${selectList}")
-        Log.d(TAG, "deleteSelected44: ${selectList}")
-        selectList?.forEach {
-            deleteDir(it.path)
-        }
-        onDelete?.invoke()
-    }
-
-    private fun copyFolder(src: Path, dest: Path) {
-        if (Files.isDirectory(src)) {
-            Log.d(TAG, "src: ${src}")
-            Log.d(TAG, "dest: ${dest}")
-            if (!Files.exists(dest)) {
-                Files.createDirectory(dest)
-            }
-            Files.newDirectoryStream(src).toList().forEach {
-                val srcFile = Paths.get(
-                    src.toAbsolutePath().toString() + File.separator + it.fileName.toString()
-                )
-                val destFile = Paths.get(
-                    dest.toAbsolutePath().toString() + File.separator + it.fileName.toString()
-                )
-                // 递归复制
-                copyFolder(srcFile, destFile)
-            }
-        } else {
-            Log.d(TAG, "copyFolder: ${dest}")
-            Files.copy(
-                src,
-                dest
-            )
-        }
-    }
-
-    fun copySelectedTo(path: Path, onCopy: (() -> Unit)?) {
-        Log.d(TAG, "cutSelectedTo: ${pathListLiveData.value}")
-        val selectList = getSelectList()
-        selectList?.forEach {
-            Log.d(TAG, "getSelectList forEach: ${it}")
-            val newFile = Paths.get(
-                path.toAbsolutePath()
-                    .toString() + File.separator + it.path.fileName.toString()
-            )
-            copyFolder(it.path, newFile)
-        }
-        onCopy?.invoke()
-    }
-
-    fun cutSelectedTo(path: Path, onCut: (() -> Unit)?) {
-        val selectList = getSelectList()
-        selectList?.forEach {
-            val newFile = Paths.get(
-                path.toAbsolutePath()
-                    .toString() + File.separator + it.path.fileName.toString()
-            )
-            copyFolder(it.path, newFile)
-        }
-        selectList?.forEach {
-            deleteDir(it.path)
-        }
-        onCut?.invoke()
-    }
-
-    private fun deleteDir(path: Path) {
-        Log.d(TAG, "deleteDir: ${path}")
-        Log.d(TAG, "exists: ${Files.exists(path)}")
-        if (Files.isDirectory(path)) {
-            for (f in Files.newDirectoryStream(path).toList())
-                deleteDir(f)
-            Files.delete(path)
-        } else {
-
-            Files.delete(path)
-        }
-    }
-
-    fun getSelectList(): List<FileItem>? {
-        Log.d(TAG, "getSelectList: ${pathListLiveData.value}")
-        return pathListLiveData.value?.filter {
-            it.selected
-        }
-    }
-
-    fun getUnSelectList(): List<FileItem>? {
-        return pathListLiveData.value?.filter { !it.selected }
-    }
-
-    fun select(index: Int) {
-        Log.d(TAG, "select: $index")
-        pathListLiveData.value = pathListLiveData.value?.apply {
-            get(index).selected = true
-        }
-    }
-
-    fun unSelect(index: Int) {
-        pathListLiveData.value = pathListLiveData.value?.apply {
-            get(index).selected = false
-        }
-    }
-
 
     open fun initData(path: Path, refresh: Boolean = false) {
         this.path = path
         initialFileItemList = Files.newDirectoryStream(path).toList().map {
-            FileItem(it, false)
+            FileItem.fromLocalFile(it)
         }.toMutableList()
     }
 
     fun sortByName(reverseOrder: Boolean) {
         if (reverseOrder)
-            pathListLiveData.value = pathListLiveData.value?.sortedByDescending { it.path.fileName }
+            pathListLiveData.value = pathListLiveData.value?.sortedByDescending { it.name }
         else
-            pathListLiveData.value = pathListLiveData.value?.sortedBy { it.path.fileName }
+            pathListLiveData.value = pathListLiveData.value?.sortedBy { it.name }
         with(sharedPreferences.edit()) {
             putBoolean(SORT_REVERSE_ORDER, reverseOrder)
             putString(SORT_TYPE, "name")
@@ -189,10 +54,10 @@ open class BasicSortViewModel(val handle: SavedStateHandle, application: Applica
     fun sortByModifyTime(reverseOrder: Boolean) {
         if (reverseOrder)
             pathListLiveData.value =
-                pathListLiveData.value?.sortedByDescending { Files.getLastModifiedTime(it.path) }
+                pathListLiveData.value?.sortedByDescending { it.lastModified }
         else
             pathListLiveData.value =
-                pathListLiveData.value?.sortedBy { Files.getLastModifiedTime(it.path) }
+                pathListLiveData.value?.sortedBy { it.lastModified }
 
         with(sharedPreferences.edit()) {
             putBoolean(SORT_REVERSE_ORDER, reverseOrder)
@@ -204,9 +69,9 @@ open class BasicSortViewModel(val handle: SavedStateHandle, application: Applica
     fun sortBySize(reverseOrder: Boolean) {
         if (reverseOrder)
             pathListLiveData.value =
-                pathListLiveData.value?.sortedByDescending { Files.size(it.path) }
+                pathListLiveData.value?.sortedByDescending { it.length }
         else
-            pathListLiveData.value = pathListLiveData.value?.sortedBy { Files.size(it.path) }
+            pathListLiveData.value = pathListLiveData.value?.sortedBy { it.length }
         with(sharedPreferences.edit()) {
             putBoolean(SORT_REVERSE_ORDER, reverseOrder)
             putString(SORT_TYPE, "size")
@@ -221,7 +86,7 @@ open class BasicSortViewModel(val handle: SavedStateHandle, application: Applica
             pathListLiveData.value = list
         } else {
             pathListLiveData.value = pathListLiveData.value
-                ?.filter { !it.path.fileName.toString().startsWith(".") }
+                ?.filter { !it.name.startsWith(".") }
         }
         with(sharedPreferences.edit()) {
             putBoolean(HIDDEN_FILE_STATUS, hasHiddenFile)
@@ -251,28 +116,20 @@ open class BasicSortViewModel(val handle: SavedStateHandle, application: Applica
         }
         if (!hasHiddenFile) {
             pathList.removeIf {
-                it.path.fileName.toString().startsWith(".")
+                it.name.startsWith(".")
             }
         }
         if (sortOrder) {
             when (sortType) {
-                "name" -> pathList.sortByDescending { it.path.fileName }
-                "size" -> pathList.sortByDescending { Files.size(it.path) }
-                "time" -> pathList.sortByDescending {
-                    Files.getLastModifiedTime(
-                        it.path
-                    )
-                }
+                "name" -> pathList.sortByDescending { it.name }
+                "size" -> pathList.sortByDescending { it.length }
+                "time" -> pathList.sortByDescending { it.lastModified }
             }
         } else {
             when (sortType) {
-                "name" -> pathList.sortBy { it.path.fileName }
-                "size" -> pathList.sortBy { Files.size(it.path) }
-                "time" -> pathList.sortBy {
-                    Files.getLastModifiedTime(
-                        it.path
-                    )
-                }
+                "name" -> pathList.sortBy { it.name }
+                "size" -> pathList.sortBy { it.length }
+                "time" -> pathList.sortBy { it.lastModified }
             }
         }
     }
